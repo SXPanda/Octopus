@@ -41,6 +41,11 @@ This demo code creates an octopus instance on the #octopus canvas, then renders 
   	Physics.debug = true;
   });
 ```
+
+##Documentation
+
+[Read the wiki](https://github.com/SXPanda/Octopus.js/wiki) for advanced documentation
+
 ##Supported browsers
 Octopus.js 0.0.1 has been tested in
 
