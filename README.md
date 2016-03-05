@@ -1,4 +1,4 @@
-# Octopus.js ![octopus logo](https://github.com/SXPanda/Octopus.js/blob/master/octopus_logo_64.png?raw=true)
+# ![octopus logo](https://github.com/SXPanda/Octopus.js/blob/master/octopus_logo_64.png?raw=true) Octopus.js
 A Javascript and HTML5 based game engine
 
 **Octopus.js** is a Javascript based game engine that makes use of HTML5 Canvas.
