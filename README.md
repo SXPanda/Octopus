@@ -17,6 +17,30 @@ Download all files in the Octopus folder and include these script tags in your p
   <script src="octopus.js"></script>
   <script src="octopus.physics.js"></script>
 ```
+And insert a canvas into the body of your page
+```
+  <canvas id="octopus"></canvas>
+```
+This demo code creates an octopus instance on the #octopus canvas, then renders several circles and rects
+```
+  var octopus;
+  $(document).on('ready', function() {
+  	octopus = new Octopus.Instance($('#octopus'), {width: '100%', height: '1200'});
+  	
+  	for (var i = 0; i < 20; ++i) {
+  		for (var j = 0; j < 5; ++j) {
+  			octopus.methods.addObject(new Octopus.PhysicsCircle(50 + 100 * i, 50 + 100 * j, 20, 'red', 'blue'));
+  			octopus.methods.addObject(new Octopus.PhysicsRect(100 + 100 * i, 50 + 100 * j, 20, 20));
+  		}
+  	}
+  	$('#octopus').on('beforeInitialise', function() {
+  		console.log('before initialised');
+  	});
+  	/* Disable gravity and enable physics debug (shows hit boxes) */
+  	Physics.gravity.y = 0;
+  	Physics.debug = true;
+  });
+```
 ##Supported browsers
 Octopus.js 0.0.1 has been tested in
 
