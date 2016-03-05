@@ -10,7 +10,9 @@ var Octopus  = {
 	modules : {},
 	options : {
 		width: 400,
-		height: 400
+		height: 400,
+		backgroundColor : 'transparent',
+		frameRate : 60
 	},
 	core : {
 		BaseClass : {
@@ -39,6 +41,9 @@ var Octopus  = {
 				
 			else
 				Octopus[className];
+		},
+		loadScene : function(url) {
+			$.getJSON('scenes/scene.json');
 		}
 	},
 	classes : {
@@ -62,7 +67,7 @@ var Octopus  = {
 			Octopus.options = $.extend(Octopus.options, options);
 			Octopus.options.masterElement = el;
 			Octopus.options.masterElement.trigger('beforeInitialise');
-			Octopus.options.masterElement.css('width', Octopus.options.width).css('height', Octopus.options.height);
+			Octopus.options.masterElement.css('width', Octopus.options.width).css('height', Octopus.options.height).css('background-color', Octopus.options.backgroundColor);
 			var el = Octopus.options.masterElement;
 			el[0].width = el.width();
 			el[0].height = el.height();
@@ -74,11 +79,13 @@ var Octopus  = {
 			
 		},
 		onBeforeUpdate : function() {
+			var c = Octopus.options.masterElement[0],
+				ctx = c.getContext("2d");
 			for (var i in globals) {
-				globals[i].beforeUpdate();
+				globals[i].beforeUpdate(ctx);
 			}
 			for (var o in Octopus.objects) {
-				Octopus.objects[o].beforeUpdate();
+				Octopus.objects[o].beforeUpdate(ctx);
 			}
 		},
 		onUpdate : function() {
@@ -92,7 +99,7 @@ var Octopus  = {
 			for (var o in objects)
 			{
 				obj = objects[o];
-				obj.update();
+				obj.update(ctx);
 				obj.render(ctx);
 			}
 		},
@@ -104,7 +111,7 @@ var Octopus  = {
 				Octopus.objects[o].afterUpdate(ctx);
 			}
 			for (var i in globals) {
-				globals[i].afterUpdate();
+				globals[i].afterUpdate(ctx);
 			}
 		},
 		gameLoop : function() {
@@ -122,7 +129,7 @@ var Octopus  = {
 			clearInterval(timeOut);
 		},
 		startExecution : function() {
-			timeOut = setInterval(Octopus.methods.gameLoop, 1000/60);
+			timeOut = setInterval(Octopus.methods.gameLoop, 1000/Octopus.options.frameRate);
 		}
 	},
 	extendMethods : function (methodName, methodFunction) {
@@ -132,19 +139,16 @@ var Octopus  = {
 
 var Time = Octopus.core.createClass('Time',{
 	prevFrameTimestamp : false,
-	frameTime : false,
+	deltaTime : false,
 	frame : 0,
 	start : function(args){
 		this.prevFrameTimestamp = Date.now();
 	},
 	beforeUpdate : function(args){
 		this.frame ++;
-		this.frameTime = (Date.now() - this.prevFrameTimestamp)/1000;
+		this.deltaTime = (Date.now() - this.prevFrameTimestamp)/1000;
 		this.prevFrameTimestamp = Date.now();
 	},
-	deltaTime : function() {
-		return this.frameTime;
-	}
 }, false, true);
 
 
@@ -163,17 +167,24 @@ var Cache = Octopus.core.createClass('Cache', {
 		else
 			this.frameCache[key] = value;
 	}, 
-	getValue : function(key, value, persistent) {
-		if (!persistent)
-			return this.frameCache[key];
-		else
+	getValue : function(key, persistentCacheOnly) {
+		if (persistentCacheOnly)
 			return this.persistentCache[key];
+		
+		var cachedVal = this.frameCache[key];
+		if (!cachedVal)
+			cachedVal = this.persistentCache[key];
+		
+		return cachedVal;
 	},
 	afterUpdate : function() {
 		this.clearCache();
 	},
 	clearCache : function() {
 		this.frameCache = {};
+	},
+	clearPersistentCache : function() {
+		this.persistentCache = {};
 	}
 }, false, true);
 
@@ -185,11 +196,14 @@ var InputController = Octopus.core.createClass('InputController',{
 		'down' : 40
 	},
 	keys: {},
+	keysDown : {},
+	keysUp : {},
 	inputs : {
 		'left' : 37,
 		'right' : 39,
 		'up' : 38,
-		'down' : 40
+		'down' : 40,
+		'jump' : 32
 	},
 	axis : {
 		'horizontal' : {positive : 'right', negative : 'left'},
@@ -198,22 +212,39 @@ var InputController = Octopus.core.createClass('InputController',{
 	start : function() {
 		var controller = this;
 		window.addEventListener("keydown", function(e) {
+			if (!controller.keys[e.keyCode])
+				controller.keysDown[e.keyCode] = true;
 			controller.keys[e.keyCode] = true;
 			console.log(e.keyCode);
 		});
 		window.addEventListener("keyup", function(e) {
 			controller.keys[e.keyCode] = false;
+			controller.keysUp[e.keyCode] = true;
 		});
 	},
 	getInput : function(key) {
-		var keyCode = this.inputs[key];
-		return this.getKeyState(keyCode);
+		var keyCode = this.inputs[key],
+			keyState = this.getKeyState(keyCode);
+			
+		if (typeof(keyState) == 'undefined')
+			keyState = false;
+		
+		return keyState;
+	},
+	getInputDown : function(key) {
+		var keyCode = this.inputs[key],
+			keyState = this.keysDown[keyCode];
+			
+		if (typeof(keyState) == 'undefined')
+			keyState = false;
+		
+		return keyState;
 	},
 	getKeyState : function(keyCode) {
 		return this.keys[keyCode];
 	},
-	getAxis : function(axis) {
-		var axisData = this.axis[axis];
+	getAxis : function(axisName) {
+		var axisData = this.axis[axisName];
 		
 		if (!axisData)
 			return 0;
@@ -230,13 +261,13 @@ var InputController = Octopus.core.createClass('InputController',{
 		else
 			return 0;		
 	},
-	registerInput(inputName, keyString) {
+	registerInput : function(inputName, keyString) {
 		var keyCode = this.getKeyCode(keyString);
 		
 		if (keyCode !== false)
 			this.inputs[inputName] = keyCode;
 	},
-	registerAxis(axisName, positiveKey, negativeKey) {
+	registerAxis : function(axisName, positiveKey, negativeKey) {
 		var positiveKeyCode = this.getKeyCode(positiveKey),
 			negativeKeyCode = this.getKeyCode(negativeKey),
 			axis = {};
@@ -250,7 +281,7 @@ var InputController = Octopus.core.createClass('InputController',{
 			this.axis[axisName] = axis;
 		}
 	},
-	getKeyCode(keyString) {
+	getKeyCode : function(keyString) {
 		if (this.staticKeys[keyString])
 			return this.staticKeys[keyString];
 		else if (keyString.length == 1)
@@ -258,6 +289,10 @@ var InputController = Octopus.core.createClass('InputController',{
 		else
 			console.log('unrecognised key: ' + keyString);
 		return false;
+	},
+	afterUpdate : function() {
+		this.keysDown = {};
+		this.keysUp = {};
 	}
 }, false, true);
 
@@ -327,6 +362,22 @@ Octopus.core.createClass('Rect',{
 		ctx.closePath();
 	}
 }, Octopus.Object);
+
+Octopus.core.createClass('Sprite', {
+	sprite : false,
+	start : function(spriteSrc, x, y, w, h) {
+		this.sprite = new Image();
+		this.sprite.src = spriteSrc;
+		this.position = {x : x, y : y};
+		this.width = w;
+		this.height = h;
+	},
+	render : function (ctx) {
+		ctx.drawImage(this.sprite, this.position.x, this.position.y, this.width, this.height);
+	}
+}, Octopus.Object);
+
+
 
 Math.clamp = function(val, min, max) {
 	if (val < min)
