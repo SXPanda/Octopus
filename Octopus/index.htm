@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+		<script src="octopus.js"></script>
+		<script src="octopus.physics.js"></script>
+		<script>
+			var octopus
+			$(document).on('ready', function() {
+				octopus = new Octopus.Instance($('#octopus'), {width: '100%', height: '1200'});
+				
+				for (var i = 0; i < 20; ++i) {
+					for (var j = 0; j < 5; ++j) {
+						octopus.methods.addObject(new Octopus.PhysicsCircle(50 + 100 * i, 50 + 100 * j, 20, 'red', 'blue'));
+						octopus.methods.addObject(new Octopus.PhysicsRect(100 + 100 * i, 50 + 100 * j, 20, 20));
+					}
+				}
+				$('#octopus').on('beforeInitialise', function() {
+					console.log('before initialised');
+				});
+				
+				Physics.gravity.y = 0;
+				Physics.debug = true;
+			});
+		</script>
+	</head>
+	<body>
+		<canvas id="octopus"></canvas>
+	</body>
+</html>
