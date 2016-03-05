@@ -25,7 +25,9 @@ var Physics = Octopus.core.createClass('Physics', {
 Octopus.core.createClass('PhysicsObject',{
 	inertia : {x: 0, y: 0},
 	bounds: {x: 0, y: 0, w: 0, h: 0},
+	borders: {top: false, bottom: false, left: false, right: false},
 	drag : 0.0125,
+	gravityEnabled : true,
 	physicsEnabled : true,
 	beforeUpdate : function() {
 		this.applyGravity();
@@ -47,8 +49,17 @@ Octopus.core.createClass('PhysicsObject',{
 			{
 				/* check the actual difference in position between two elements, using the objects current position (not the estimated tmpBounds) */
 				var deltaPos = this.checkPositionDelta(this.bounds, physicsObjects[i].bounds);
-				this.inertia.x = Math.clamp(this.inertia.x, -deltaPos.x, deltaPos.x);
-				this.inertia.y = Math.clamp(this.inertia.y, -deltaPos.y, deltaPos.y);
+				
+				if (deltaPos.x == 0 && deltaPos.y == 0)
+					deltaPos.x == Math.Infinity;
+				
+				if (deltaPos.x < this.inertia.x * Math.sign(this.inertia.x)){
+					this.inertia.x = Math.clamp(this.inertia.x, -deltaPos.x, deltaPos.x);
+					console.log('slowed x by ' + deltaPos.x);
+				}
+				
+				if (deltaPos.y < this.inertia.y * Math.sign(this.inertia.y))
+					this.inertia.y = Math.clamp(this.inertia.y, -deltaPos.y, deltaPos.y);
 				//this.inertia = {x: 0, y: 0};
 				//return false;
 			}
@@ -61,7 +72,9 @@ Octopus.core.createClass('PhysicsObject',{
 		this.bounds = tmpBounds;
 	},
 	applyGravity : function() {
-		this.addForce(Physics.gravity.x * Time.deltaTime(), Physics.gravity.y * Time.deltaTime());
+		if (!this.gravityEnabled)
+			return false;
+		this.addForce(Physics.gravity.x * Time.deltaTime, Physics.gravity.y * Time.deltaTime);
 	},
 	addForce : function(x, y) {
 		this.inertia.x += x;
@@ -81,21 +94,38 @@ Octopus.core.createClass('PhysicsObject',{
 		}
 	},
 	checkPositionDelta : function (self, other) {
-		var delta = {x : 0, y: 0};
-		if (self.x < other.x) {
-			delta.x = self.x + self.w - other.x;
-		} else {
-			delta.x = other.x + other.w - self.x;
+		var delta = {x : Math.Infinity, y: Math.Infinity};
+		if (self.y + self.h > other.y && self.y < other.y + other.h ) {
+			if (self.x < other.x) {
+				delta.x = self.x + self.w - other.x;
+				if (delta.x == 0)
+					this.borders.right = true;
+			} else {
+				delta.x = other.x + other.w - self.x;
+				if (delta.x == 0)
+					this.borders.left = true;
+			}
 		}
 		
-		if (self.y < other.y) {
-			delta.y = self.y + self.h - other.y;
-		} else {
-			delta.y = other.y + other.h - self.y;
+		if (self.x + self.w > other.x && self.x < other.x + other.w ) {
+			if (self.y < other.y) {
+				delta.y = self.y + self.h - other.y;
+				if (delta.y == 0)
+					this.borders.bottom = true;
+			} else {
+				delta.y = other.y + other.h - self.y;
+				if (delta.y == 0)
+					this.borders.top = true;
+			}
 		}
 		
 		delta.x *= Math.sign(delta.x);
 		delta.y *= Math.sign(delta.y);
+		
+		//if (delta.x == 0)
+		//	delta.x = Math.Infinity;
+		//if (delta.y == 0)
+			//delta.y = Math.Infinity;
 		
 		return delta;
 	},
@@ -116,6 +146,8 @@ Octopus.core.createClass('PhysicsObject',{
 			ctx.stroke();
 			ctx.closePath();
 		}
+		
+		this.borders = {top: false, bottom: false, left: false, right: false};
 	}
 }, Octopus.Object);
 
@@ -123,7 +155,7 @@ Octopus.core.createClass('PhysicsCircle',{
 	fillColor : false,
 	strokeColor : false,
 	radius : 0,
-	start : function(x, y, r, fill, stroke) {
+	start : function(x, y, r, fill, stroke, disableGravity) {
 		this.fillColor = fill;
 		this.strokeColor = stroke;	
 		this.position = {x : x, y : y};
@@ -131,6 +163,7 @@ Octopus.core.createClass('PhysicsCircle',{
 		this.bounds = {x: x - r, y: y - r, w: r * 2, h: r * 2};
 		//this.render();
 		console.log(this);
+		this.gravityEnabled = !disableGravity;
 	},
 	render : function(ctx) {
 			
@@ -142,10 +175,10 @@ Octopus.core.createClass('PhysicsCircle',{
 		ctx.fill();
 		ctx.closePath();
 	},
-	update : function() {
+	/*update : function() {
 		
-		this.addForce((InputController.getAxis('horizontal') + InputController.getAxis('horAlt')) * Time.deltaTime() * 20, InputController.getAxis('vertical') * Time.deltaTime() * 20)
-	}
+		this.addForce((InputController.getAxis('horizontal') + InputController.getAxis('horAlt')) * Time.deltaTime * 20, InputController.getAxis('vertical') * Time.deltaTime * 20)
+	}*/
 }, Octopus.PhysicsObject);
 
 Octopus.core.createClass('PhysicsRect',{
@@ -153,7 +186,7 @@ Octopus.core.createClass('PhysicsRect',{
 	strokeColor : false,
 	width : 0,
 	height: 0,
-	start : function(x, y, w, h, fill, stroke) {
+	start : function(x, y, w, h, fill, stroke, disableGravity) {
 		this.fillColor = fill;
 		this.strokeColor = stroke;	
 		this.position = {x : x, y : y};
@@ -161,6 +194,7 @@ Octopus.core.createClass('PhysicsRect',{
 		this.height = h;
 		
 		this.bounds = {x: x, y: y, w: w, h: h};
+		this.gravityEnabled = !disableGravity;
 		//this.render();
 	},
 	render : function(ctx) {
@@ -174,3 +208,33 @@ Octopus.core.createClass('PhysicsRect',{
 		ctx.closePath();
 	}
 }, Octopus.PhysicsObject);
+
+Octopus.core.createClass('PhysicsSprite', {
+	sprite : false,
+	start : function(spriteSrc, x, y, w, h, disableGravity) {
+		this.sprite = new Image();
+		this.sprite.src = spriteSrc;
+		this.position = {x : x, y : y};
+		this.width = w;
+		this.height = h;
+		this.bounds = {x: x, y: y, w: w, h: h};
+		this.gravityEnabled = !disableGravity;
+	},
+	render : function (ctx) {
+		ctx.drawImage(this.sprite, this.position.x, this.position.y, this.width, this.height);
+	},
+}, Octopus.PhysicsObject);
+
+Octopus.core.createClass('PhysicsCharacter', {
+	isGrounded : function() {
+		return this.borders.bottom;
+	},
+	update : function() {
+		
+		//this.addForce((InputController.getAxis('horizontal') + InputController.getAxis('horAlt')) * Time.deltaTime * 20, InputController.getAxis('vertical') * Time.deltaTime * 20)
+		this.addForce((InputController.getAxis('horizontal') + InputController.getAxis('horAlt')) * Time.deltaTime * 20, 0);
+		
+		if (InputController.getInputDown('jump') && this.isGrounded())
+			this.addForce(0, 5);
+	}
+}, Octopus.PhysicsSprite)
