@@ -8,21 +8,27 @@
 		<script>
 			var octopus;
 			$(document).on('ready', function() {
-				octopus = new Octopus.Instance($('#octopus'), {width: '100%', height: '100vh', backgroundColor : '#D3F2FF',frameRate : 60});
-				
-				for (var i = 0; i < 20; ++i) {
-					//octopus.methods.addObject(new Octopus.PhysicsCircle(50 + 100 * i, 50 + 100 * j, 20, 'red', 'blue', true));
-					octopus.methods.addObject(new Octopus.PhysicsRect(100 + 110 * i, 400 + Math.sin(i) * 20, 100, 40, 'red', 'blue', true));
+				octopus = new Octopus.Instance($('#octopus'), {width: '100%', height: '90vh', backgroundColor : '#D3F2FF',frameRate : 60}, function(octopus){
+					console.log(octopus);
+					for (var i = 0; i < 20; ++i) {
+						for (var j = 0; j < 2; ++j) {
+							//octopus.methods.addObject(new Octopus.PhysicsCircle(50 + 100 * i, 50 + 100 * j, 20, 'red', 'blue', true));
+							octopus.methods.addObject(new Octopus.PhysicsRect(100 + 110 * i, 400 + Math.sin(i) * 20 + 200 * j , 100, 40, 'red', 'blue', true));
+						}
+					}
 					
-				}
-				$('#octopus').on('beforeInitialise', function() {
-					console.log('before initialised');
+					for (i = 0; i < 20; ++i) {
+						octopus.methods.addObject(new Octopus.PhysicsRect(100 + 110 * i, 800, 100, 40, 'red', 'blue', true));
+					}
+					$('#octopus').on('beforeInitialise', function() {
+						console.log('before initialised');
+					});
+					
+					octopus.methods.addObject(new Octopus.PhysicsCharacter('resources/PNG/Characters/Hedgehog/hedgehog_body.png', 100, 100, 72, 40));
+					
+					//Physics.gravity.y = 0;
+					Physics.debug = true;
 				});
-				
-				octopus.methods.addObject(new Octopus.PhysicsCharacter('resources/PNG/Characters/Hedgehog/hedgehog_body.png', 100, 100, 72, 40));
-				
-				//Physics.gravity.y = 0;
-				Physics.debug = true;
 			});
 		</script>
 	</head>
