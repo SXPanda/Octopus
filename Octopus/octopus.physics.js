@@ -3,7 +3,7 @@ Octopus.extendMethods('getPhysicsObjects', function() {
 		frame = Time.frame;
 	if (cache = Cache.getValue('Physics_physicsObjects'))
 		return cache;
-	var objects = Octopus.objects,
+	var objects = Octopus.scene.objects,
 		physicsObjects = [];
 	
 	for (var o in objects)
@@ -46,24 +46,34 @@ Octopus.core.createClass('PhysicsObject',{
 				continue;
 			/* check if our trajectory is clear of obstacles, using the tmpBounds estimation of where our div should be */
 			if (this.checkCollision(tmpBounds, physicsObjects[i]))
-			{
+			{				
 				/* check the actual difference in position between two elements, using the objects current position (not the estimated tmpBounds) */
 				var deltaPos = this.checkPositionDelta(this.bounds, physicsObjects[i].bounds);
 				
-				if (deltaPos.x == 0 && deltaPos.y == 0)
-					deltaPos.x == Math.Infinity;
-				
-				if (deltaPos.x < this.inertia.x * Math.sign(this.inertia.x)){
-					this.inertia.x = Math.clamp(this.inertia.x, -deltaPos.x, deltaPos.x);
-					console.log('slowed x by ' + deltaPos.x);
+				if (deltaPos.x === 0 && deltaPos.y === 0){
+					deltaPos.x = Math.Infinity;
+					console.log('corner collision');
 				}
 				
-				if (deltaPos.y < this.inertia.y * Math.sign(this.inertia.y))
+				//console.log(deltaPos.x, deltaPos.y);
+				
+				if (deltaPos.x !== false && deltaPos.x < this.inertia.x * Math.sign(this.inertia.x)){
+					this.inertia.x = Math.clamp(this.inertia.x, -deltaPos.x, deltaPos.x);
+				}
+				
+				if (deltaPos.y !== false && deltaPos.y < this.inertia.y * Math.sign(this.inertia.y))
 					this.inertia.y = Math.clamp(this.inertia.y, -deltaPos.y, deltaPos.y);
+				
+				/*if (this.borders.top || this.borders.bottom)
+					this.inertia.y = 0;
+				if (this.borders.left || this.borders.right)
+					this.inertia.x = 0;*/
 				//this.inertia = {x: 0, y: 0};
 				//return false;
 			}
 		}
+		
+		//console.log(this.inertia);
 		this.translate(this.inertia.x, this.inertia.y);
 		
 		tmpBounds = $.extend({}, this.bounds);
@@ -86,15 +96,118 @@ Octopus.core.createClass('PhysicsObject',{
 	},
 	checkCollision : function(self, other) {
 		var bounds = other.bounds;
-		if (self.x + self.w > bounds.x &&
-			self.x < bounds.x + bounds.w &&
-			self.y + self.h > bounds.y &&
-			self.y < bounds.y + bounds.h) {
+		if (self.x + self.w >= bounds.x &&
+			self.x <= bounds.x + bounds.w &&
+			self.y + self.h >= bounds.y &&
+			self.y <= bounds.y + bounds.h) {
 				return true;
 		}
+		return false;
 	},
 	checkPositionDelta : function (self, other) {
-		var delta = {x : Math.Infinity, y: Math.Infinity};
+		var deltaPos = {x: false, y: false};
+		
+		// if to the left of the object, ignore the fact that we are travelling right as it has no impact on the collision
+		if (this.inertia.x > 0 && self.x + self.w <= other.x) {
+			if (this.inertia.y > 0 && self.y >= other.y + other.h) {
+				//travelling up and to the right
+				console.log('up and right');
+				deltaPos = {
+					x: other.x - (self.x + self.w),
+					y: self.y - (other.y + other.h)
+				}
+				
+			} else if (this.inertia.y < 0 && self.y + self.h <= other.y) {
+				//travelling down and to the right
+				console.log('down and right');
+				
+				deltaPos = {
+					x: other.x - (self.x + self.w),
+					y: self.y + self.h - other.y
+				}
+				
+			} else {
+				console.log('right');
+				//travelling directly to the right
+				deltaPos = {
+					x: other.x - (self.x + self.w),
+					y: false
+				}
+				
+			}
+		} else if (this.inertia.x < 0 && self.x >= other.x + other.w) {
+			if (this.inertia.y >= 0 && self.y >= other.y + other.h) {
+				//travelling up and to the right
+				console.log('up and left');
+				
+				deltaPos = {
+					x: self.x - (other.x + other.w),
+					y: self.y - (other.y + other.h)
+				}
+				
+			} else if (this.inertia.y < 0 && self.y + self.h <= other.y) {
+				//travelling down and to the right
+				console.log('down and left');
+				
+				deltaPos = {
+					x: self.x - (other.x + other.w),
+					y: self.y + self.h - other.y
+				}
+				
+			} else {
+				//travelling directly to the right			
+				console.log('left');	
+				console.log(self.x, other.x, other.w);
+				console.log(self.x - other.x + other.w);
+				deltaPos = {
+					x: self.x - (other.x + other.w),
+					y: false
+				}
+				
+			}
+		} else {
+			if (this.inertia.y > 0 && self.y >= other.y + other.h) {
+				//travelling up and to the right
+				console.log('up');
+				
+				deltaPos = {
+					x: false,
+					y: self.y - (other.y + other.h)
+				}
+				
+			} else if (this.inertia.y < 0 && self.y + self.h <= other.y) {
+				//travelling down and to the right
+				console.log('down');
+				
+				deltaPos = {
+					x: false,
+					y: self.y + self.h - other.y
+				}
+				
+			} else {
+				//travelling directly to the right	
+				console.log('nowhere');			
+				deltaPos = {
+					x: false,
+					y: false
+				}
+				
+			}
+		}
+		
+		console.log(deltaPos);
+		/*if (deltaPos.x !== false)
+			this.inertia.x = deltaPos.x;
+		if (deltaPos.y !== false)
+			this.inertia.y = deltaPos.y;*/
+		if (deltaPos.x !== false)
+			deltaPos.x *= Math.sign(deltaPos.x);
+		if (deltaPos.y !== false)
+			deltaPos.y *= Math.sign(deltaPos.y);
+		
+		var delta = {x : false, y: false};
+		
+		//if horizontally overlaps with object
 		if (self.y + self.h > other.y && self.y < other.y + other.h ) {
 			if (self.x < other.x) {
 				delta.x = self.x + self.w - other.x;
@@ -107,6 +220,7 @@ Octopus.core.createClass('PhysicsObject',{
 			}
 		}
 		
+		//if vertically overlaps with object
 		if (self.x + self.w > other.x && self.x < other.x + other.w ) {
 			if (self.y < other.y) {
 				delta.y = self.y + self.h - other.y;
@@ -117,17 +231,21 @@ Octopus.core.createClass('PhysicsObject',{
 				if (delta.y == 0)
 					this.borders.top = true;
 			}
-		}
-		
-		delta.x *= Math.sign(delta.x);
-		delta.y *= Math.sign(delta.y);
+		}/*
+		if (delta.x !== false)
+			delta.x *= Math.sign(delta.x);
+		if (delta.y !== false)
+			delta.y *= Math.sign(delta.y);
 		
 		//if (delta.x == 0)
 		//	delta.x = Math.Infinity;
 		//if (delta.y == 0)
 			//delta.y = Math.Infinity;
 		
-		return delta;
+		return delta;*/
+		
+		
+		return deltaPos;
 	},
 	angleBetween : function(self, other, radians) {
 		var angle = Math.atan2(other.y - self.y, other.x - self.x);
@@ -213,6 +331,7 @@ Octopus.core.createClass('PhysicsSprite', {
 	sprite : false,
 	start : function(spriteSrc, x, y, w, h, disableGravity) {
 		this.sprite = new Image();
+		//this.sprite.crossOrigin = "anonymous";
 		this.sprite.src = spriteSrc;
 		this.position = {x : x, y : y};
 		this.width = w;
