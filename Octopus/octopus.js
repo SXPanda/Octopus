@@ -49,7 +49,7 @@ var Octopus  = {
 	classes : {
 		
 	},
-	Instance : function(el, options){
+	Instance : function(el, options, callback){
 		var timeOut = false;
 		var controller = {
 			objects : Octopus.objects,
@@ -58,9 +58,12 @@ var Octopus  = {
 		
 		controller.methods.initialize(el, options);
 		
+		callback(controller);
+		
 		return controller;
 	},
 	objects : {},
+	scene : false,
 	methods : {
 		initialize : function(el, options) {
 		
@@ -73,69 +76,40 @@ var Octopus  = {
 			el[0].height = el.height();
 			
 			var circle = new Octopus.Circle(100, 100, 50, 'red', 'blue');
+			
+			if (!Octopus.scene)
+				Octopus.scene = new Octopus.Scene();
+			
 			Octopus.methods.startExecution();
+			
 		},
 		loadClasses : function() {
 			
 		},
-		onBeforeUpdate : function() {
-			var c = Octopus.options.masterElement[0],
-				ctx = c.getContext("2d");
-			for (var i in globals) {
-				globals[i].beforeUpdate(ctx);
-			}
-			for (var o in Octopus.objects) {
-				Octopus.objects[o].beforeUpdate(ctx);
-			}
-		},
 		onUpdate : function() {
-			var c = Octopus.options.masterElement[0],
-				ctx = c.getContext("2d");
-			
-			ctx.clearRect(0,0,c.width, c.height);
-			
-			var objects = Octopus.objects,
-				obj = false;
-			for (var o in objects)
-			{
-				obj = objects[o];
-				obj.update(ctx);
-				obj.render(ctx);
-			}
-		},
-		onAfterUpdate : function() {
-			
-			var c = Octopus.options.masterElement[0],
-				ctx = c.getContext("2d");
-			for (var o in Octopus.objects) {
-				Octopus.objects[o].afterUpdate(ctx);
-			}
-			for (var i in globals) {
-				globals[i].afterUpdate(ctx);
-			}
-		},
-		gameLoop : function() {
-			Octopus.methods.onBeforeUpdate();
-			Octopus.methods.onUpdate();
-			Octopus.methods.onAfterUpdate();
+			//Octopus.scene.beforeRender();
+			Octopus.scene.render();
+			//Octopus.scene.afterRender();
 		},
 		addObject : function(obj) {
-			Octopus.objects[Octopus.methods.nextObjId()] = obj;
+			Octopus.scene.objects[Octopus.methods.nextObjId()] = obj;
 		},
 		nextObjId : function() {
-			return Object.keys(octopus.objects).length;
+			return Object.keys(Octopus.scene.objects).length;
 		},
 		pauseExecution : function() {
 			clearInterval(timeOut);
 		},
 		startExecution : function() {
-			timeOut = setInterval(Octopus.methods.gameLoop, 1000/Octopus.options.frameRate);
+			timeOut = setInterval(Octopus.methods.onUpdate, 1000/Octopus.options.frameRate);
 		}
 	},
 	extendMethods : function (methodName, methodFunction) {
 		Octopus.methods[methodName] = methodFunction;
 	}
 };
+
+/* HELPERS */
 
 var Time = Octopus.core.createClass('Time',{
 	prevFrameTimestamp : false,
@@ -296,6 +270,71 @@ var InputController = Octopus.core.createClass('InputController',{
 	}
 }, false, true);
 
+
+/* END HELPERS */
+
+Octopus.core.createClass('Scene', {
+	camera : false,
+	objects : {},
+	start : function(cam) {
+		if (!cam)
+			this.camera = new Octopus.Camera();
+		
+		else
+			this.camera = cam;
+	},
+	render : function() {
+		this.camera.beforeRender(this);
+		this.camera.render(this);
+		this.camera.afterRender(this);
+	}
+})
+
+Octopus.core.createClass('Camera', {
+	position : {x: 0, y: 0},
+	beforeRender : function(scene) {
+		var c = Octopus.options.masterElement[0],
+			ctx = c.getContext("2d");
+		for (var i in globals) {
+			globals[i].beforeUpdate(ctx);
+		}
+		for (var o in scene.objects) {
+			scene.objects[o].beforeUpdate(ctx);
+		}
+	},
+	render : function(scene) {
+		var c = Octopus.options.masterElement[0],
+			ctx = c.getContext("2d");
+		
+		ctx.clearRect(0,0,c.width, c.height);
+		
+		var objects = scene.objects,
+			obj = false;
+		for (var o in objects)
+		{
+			obj = objects[o];
+			obj.update(ctx);
+			obj.render(ctx);
+		}
+	},
+	afterRender : function(scene) {
+		
+		var c = Octopus.options.masterElement[0],
+			ctx = c.getContext("2d");
+		for (var o in scene.objects) {
+			scene.objects[o].afterUpdate(ctx);
+		}
+		for (var i in globals) {
+			globals[i].afterUpdate(ctx);
+		}
+	},
+	capture : function() {
+		return Octopus.options.masterElement[0].toDataURL('image/jpeg');
+	}
+});
+
+/* OBJECTS */
+
 Octopus.core.createClass('Object',{
 	position : {x : 0, y: 0},
 	updatePosition : function (x, y) {
@@ -367,6 +406,7 @@ Octopus.core.createClass('Sprite', {
 	sprite : false,
 	start : function(spriteSrc, x, y, w, h) {
 		this.sprite = new Image();
+		//this.sprite.crossOrigin = "anonymous";
 		this.sprite.src = spriteSrc;
 		this.position = {x : x, y : y};
 		this.width = w;
@@ -377,6 +417,7 @@ Octopus.core.createClass('Sprite', {
 	}
 }, Octopus.Object);
 
+/* END OBJECTS */
 
 
 Math.clamp = function(val, min, max) {
