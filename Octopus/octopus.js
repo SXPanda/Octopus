@@ -419,14 +419,5 @@ Octopus.core.createClass('Sprite', {
 
 /* END OBJECTS */
 
-
-Math.clamp = function(val, min, max) {
-	if (val < min)
-		return min;
-	if (val > max)
-		return max;
-	return val;
-}
-
 //this is my test
 //todo: make a game
