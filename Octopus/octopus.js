@@ -404,5 +404,15 @@ Octopus.core.createClass('Rect',{
 
 /* END OBJECTS */
 
+
+Math.clamp = function(val, min, max) {
+	if (val < min)
+		return min;
+	if (val > max)
+		return max;
+	return val;
+	
+	//brought it back
+}
 //this is my test
 //todo: make a game
