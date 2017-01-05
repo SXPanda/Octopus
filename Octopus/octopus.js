@@ -406,7 +406,6 @@ hello world
 
 /* END OBJECTS */
 
-<<<<<<< HEAD
 
 Math.clamp = function(val, min, max) {
 	if (val < min)
@@ -417,8 +416,5 @@ Math.clamp = function(val, min, max) {
 	
 	//brought it back
 }
-1234
-=======
->>>>>>> refs/remotes/origin/master
 //this is my test
 //todo: make a game
