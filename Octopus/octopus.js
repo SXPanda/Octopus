@@ -426,6 +426,8 @@ Math.clamp = function(val, min, max) {
 	if (val > max)
 		return max;
 	return val;
+	
+	//brought it back
 }
 
 //this is my test
