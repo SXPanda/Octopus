@@ -402,8 +402,6 @@ Octopus.core.createClass('Rect',{
 	}
 }, Octopus.Object);
 
-hello world
-
 /* END OBJECTS */
 
 //this is my test
