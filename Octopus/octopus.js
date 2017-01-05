@@ -402,33 +402,9 @@ Octopus.core.createClass('Rect',{
 	}
 }, Octopus.Object);
 
-Octopus.core.createClass('Sprite', {
-	sprite : false,
-	start : function(spriteSrc, x, y, w, h) {
-		this.sprite = new Image();
-		//this.sprite.crossOrigin = "anonymous";
-		this.sprite.src = spriteSrc;
-		this.position = {x : x, y : y};
-		this.width = w;
-		this.height = h;
-	},
-	render : function (ctx) {
-		ctx.drawImage(this.sprite, this.position.x, this.position.y, this.width, this.height);
-	}
-}, Octopus.Object);
+hello
 
 /* END OBJECTS */
-
-
-Math.clamp = function(val, min, max) {
-	if (val < min)
-		return min;
-	if (val > max)
-		return max;
-	return val;
-	
-	//brought it back
-}
 
 //this is my test
 //todo: make a game
