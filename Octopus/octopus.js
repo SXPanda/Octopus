@@ -402,23 +402,11 @@ Octopus.core.createClass('Rect',{
 	}
 }, Octopus.Object);
 
-Octopus.core.createClass('Sprite', {
-	sprite : false,
-	start : function(spriteSrc, x, y, w, h) {
-		this.sprite = new Image();
-		//this.sprite.crossOrigin = "anonymous";
-		this.sprite.src = spriteSrc;
-		this.position = {x : x, y : y};
-		this.width = w;
-		this.height = h;
-	},
-	render : function (ctx) {
-		ctx.drawImage(this.sprite, this.position.x, this.position.y, this.width, this.height);
-	}
-}, Octopus.Object);
+hello world
 
 /* END OBJECTS */
 
+<<<<<<< HEAD
 
 Math.clamp = function(val, min, max) {
 	if (val < min)
@@ -430,5 +418,7 @@ Math.clamp = function(val, min, max) {
 	//brought it back
 }
 1234
+=======
+>>>>>>> refs/remotes/origin/master
 //this is my test
 //todo: make a game
