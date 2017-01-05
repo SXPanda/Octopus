@@ -402,7 +402,7 @@ Octopus.core.createClass('Rect',{
 	}
 }, Octopus.Object);
 
-hello
+hello world
 
 /* END OBJECTS */
 
